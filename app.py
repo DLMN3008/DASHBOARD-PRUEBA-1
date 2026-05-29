@@ -1,83 +1,175 @@
 import streamlit as st
-from PyPDF2 import PdfReader
-from openai import OpenAI
+import random
+
+# ==========================
+# CONFIGURACIÓN
+# ==========================
 
 st.set_page_config(
-    page_title="Resumen Ejecutivo de PDF",
-    page_icon="📄",
-    layout="wide"
+    page_title="Práctica de Ecuaciones",
+    page_icon="🧮",
+    layout="centered"
 )
 
-st.title("📄 Generador de Resumen Ejecutivo")
+# ==========================
+# FUNCIONES
+# ==========================
 
-st.write(
-    "Carga un archivo PDF y obtén un resumen ejecutivo generado por IA."
+def generar_ecuacion():
+
+    # Solución siempre entre 1 y 10
+    x = random.randint(1, 10)
+
+    a = random.randint(2, 10)
+    b = random.randint(-20, 20)
+
+    c = a * x + b
+
+    pregunta = f"{a}x + ({b}) = {c}"
+
+    return pregunta, x
+
+
+# ==========================
+# VARIABLES DE SESIÓN
+# ==========================
+
+if "pregunta" not in st.session_state:
+    pregunta, solucion = generar_ecuacion()
+    st.session_state.pregunta = pregunta
+    st.session_state.solucion = solucion
+
+if "aciertos" not in st.session_state:
+    st.session_state.aciertos = 0
+
+if "errores" not in st.session_state:
+    st.session_state.errores = 0
+
+
+# ==========================
+# INTERFAZ
+# ==========================
+
+st.title("🧮 Práctica de Ecuaciones de Primer Grado")
+
+st.markdown(
+    """
+    Resuelve la ecuación y encuentra el valor de **x**.
+    """
 )
 
-uploaded_file = st.file_uploader(
-    "Seleccione un archivo PDF",
-    type=["pdf"]
+st.markdown("---")
+
+st.subheader(st.session_state.pregunta)
+
+respuesta = st.number_input(
+    "Ingresa el valor de x",
+    value=1,
+    step=1
 )
 
-if uploaded_file:
+col1, col2 = st.columns(2)
 
-    try:
-        reader = PdfReader(uploaded_file)
+# ==========================
+# VERIFICAR
+# ==========================
 
-        texto = ""
+with col1:
 
-        for page in reader.pages:
-            contenido = page.extract_text()
-            if contenido:
-                texto += contenido + "\n"
+    if st.button("✅ Verificar respuesta"):
 
-        st.success(
-            f"PDF cargado correctamente ({len(reader.pages)} páginas)"
-        )
+        if int(respuesta) == st.session_state.solucion:
 
-        if st.button("Generar Resumen Ejecutivo"):
+            st.session_state.aciertos += 1
 
-            with st.spinner("Analizando documento..."):
+            st.success(
+                f"🎉 ¡Correcto! x = {st.session_state.solucion}"
+            )
 
-                client = OpenAI(
-                    api_key=st.secrets["OPENAI_API_KEY"]
-                )
+            # Animaciones
+            st.balloons()
 
-                prompt = f"""
-                Analiza el siguiente documento y genera:
-
-                1. Resumen ejecutivo.
-                2. Objetivo principal.
-                3. Hallazgos relevantes.
-                4. Riesgos identificados.
-                5. Recomendaciones.
-                6. Conclusión ejecutiva.
-
-                Documento:
-                {texto[:100000]}
+            st.markdown(
                 """
+                # ⭐⭐⭐⭐⭐
+                # 🌟🌟🌟🌟🌟
+                # ⭐⭐⭐⭐⭐
+                """
+            )
 
-                response = client.chat.completions.create(
-                    model="gpt-4.1",
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                )
+            st.markdown(
+                """
+                ## 🏆 ¡Excelente trabajo!
+                Sigue así.
+                """
+            )
 
-                resumen = response.choices[0].message.content
+        else:
 
-                st.subheader("📋 Resumen Ejecutivo")
-                st.markdown(resumen)
+            st.session_state.errores += 1
 
-                st.download_button(
-                    label="📥 Descargar Resumen",
-                    data=resumen,
-                    file_name="resumen_ejecutivo.txt",
-                    mime="text/plain"
-                )
+            st.error(
+                f"❌ Incorrecto. Inténtalo nuevamente."
+            )
 
-    except Exception as e:
-        st.error(f"Error procesando PDF: {e}")
+            st.markdown(
+                """
+                # 🤡 🤡 🤡
+                # 🤡 😜 🤡
+                # 🤡 🤡 🤡
+                """
+            )
+
+            st.warning(
+                "Sigue practicando. Tú puedes lograrlo."
+            )
+
+# ==========================
+# NUEVA PREGUNTA
+# ==========================
+
+with col2:
+
+    if st.button("🔄 Nueva pregunta"):
+
+        pregunta, solucion = generar_ecuacion()
+
+        st.session_state.pregunta = pregunta
+        st.session_state.solucion = solucion
+
+        st.rerun()
+
+# ==========================
+# ESTADÍSTICAS
+# ==========================
+
+st.markdown("---")
+
+col3, col4 = st.columns(2)
+
+with col3:
+    st.metric(
+        "🏆 Aciertos",
+        st.session_state.aciertos
+    )
+
+with col4:
+    st.metric(
+        "❌ Errores",
+        st.session_state.errores
+    )
+
+# ==========================
+# INSTRUCCIONES
+# ==========================
+
+with st.expander("📖 Instrucciones"):
+
+    st.write("""
+    1. Resuelve la ecuación.
+    2. Ingresa el valor de x.
+    3. Presiona 'Verificar respuesta'.
+    4. Si aciertas aparecerán estrellas y una animación.
+    5. Si fallas aparecerán payasos.
+    6. Presiona 'Nueva pregunta' para seguir practicando.
+    """)
